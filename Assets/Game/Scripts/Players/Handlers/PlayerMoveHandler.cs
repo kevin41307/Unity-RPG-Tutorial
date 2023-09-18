@@ -1,43 +1,36 @@
-#region
-
 using Game.Scripts.Battle.Misc;
-using Game.Scripts.Names;
 using Game.Scripts.Players.Main;
 using UnityEngine;
 using Zenject;
-
-#endregion
-
+using Game.Scripts.Misc;
 namespace Game.Scripts.Players.Handlers
 {
     public class PlayerMoveHandler : ITickable
     {
-    #region Private Variables
+        private readonly IPlayerMover mover;
+        public PlayerMoveHandler(IPlayerMover mover)
+        {
+            this.mover = mover;
+        }
 
-        [Inject]
-        private PlayerCharacter character;
+        [Inject] PlayerInputState inputState;
+        [Inject] ITimeProvider deltaTimeProvider;
+        [Inject] IStateEvaluator GamePause { get; set; }
 
-        [Inject]
-        private PlayerInputState inputState;
 
-        [Inject]
-        private ITimeProvider timeProvider;
-
-    #endregion
-
-    #region Public Methods
+        public Vector2 CalMovement()
+        {
+            var x = deltaTimeProvider.GetDeltaTime();
+            var y = mover.MoveSpeed;
+            return x * y * inputState.MoveDirection ; 
+        }
 
         public void Tick()
         {
-            // movement: fps * player's move speed * move direction
-            // newPos = movement + player's pos
-            // set player's character position by new position. 
-            var moveSpeed = character.GetStatFinalValue(StatNames.MoveSpeed);
-            var movement  = timeProvider.GetDeltaTime() * moveSpeed * inputState.MoveDirection;
-            var newPos    = movement + character.GetPos();
-            character.SetPos(newPos);
+            if(GamePause.Evaluate()) return;
+            var movement = CalMovement();
+            var newPos = mover.GetPos() + movement;
+            mover.SetPos( newPos );
         }
-
-    #endregion
     }
 }
